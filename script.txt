@@ -97,26 +97,28 @@ binds.main=game:GetService"RunService".RenderStepped:Connect(function()
 	    	end
 	    end
 		if tog.kill_trees then
-        	for _, v in ipairs(workspace.Map.Landmarks:GetChildren()) do
-        		if v.Name == "Small Tree" then
-        			local hitPart = v.Trunk
-					if not hitPart then return end
-        			if (hitPart.Position - hrp.Position).Magnitude <= vals.killaura_range then
-        				count += 1
-        				dmgEvent:InvokeServer(v, tool, tostring(count), hrp.CFrame)
-        			end
-        		end
-        	end
-			for _, v in ipairs(workspace.Map.Foliage:GetChildren()) do
-        		if v.Name == "Small Tree" then
-        			local hitPart = v.Trunk
-					if not hitPart then return end
-        			if (hitPart.Position - hrp.Position).Magnitude <= vals.killaura_range then
-        				count += 1
-        				dmgEvent:InvokeServer(v, tool, tostring(count), hrp.CFrame)
-        			end
-        		end
-        	end
+            for _, v in ipairs(workspace.Map.Landmarks:GetChildren()) do
+                if v.Name == "Small Tree" then
+                    local hitPart = v:FindFirstChild("Trunk")
+                    if hitPart then
+                        if (hitPart.Position - hrp.Position).Magnitude <= vals.killaura_range then
+                            count += 1
+                            dmgEvent:InvokeServer(v, tool, tostring(count), hrp.CFrame)
+                        end
+                    end
+                end
+            end
+            for _, v in ipairs(workspace.Map.Foliage:GetChildren()) do
+                if v.Name == "Small Tree" then
+                    local hitPart = v:FindFirstChild("Trunk")
+                    if hitPart then
+                        if (hitPart.Position - hrp.Position).Magnitude <= vals.killaura_range then
+                            count += 1
+                            dmgEvent:InvokeServer(v, tool, tostring(count), hrp.CFrame)
+						end
+                    end
+                end
+            end
         end
 		task.wait(0.1)
 		cd.killaura=true
