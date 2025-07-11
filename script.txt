@@ -1,0 +1,250 @@
+local plr=game.Players.LocalPlayer
+local chr=plr.Character
+local hum=chr:FindFirstChildWhichIsA"Humanoid"
+local hrp=chr.HumanoidRootPart
+local tog={
+	tpw=false,
+	infj=false,
+	esp=false,
+	kill_aura=false,
+	kill_trees=false,
+}
+local cd={
+	esp=true,
+	killaura=true,
+}
+local vals={
+	tpws=5,
+	killaura_range=5,
+	esp={
+		enemies=false,
+		items=false,
+		chests=false,
+	}
+}
+local binds={}
+local vi=game:GetService"VirtualInputManager"
+local rs=game:GetService"ReplicatedStorage"
+
+local GUI=loadstring(game:HttpGet"https://raw.githubusercontent.com/LopenaFollower/Lua/main/gui%20lib.lua")()
+local UI=GUI:CreateWindow"99 Nights in the forest"
+function mouse(x,y,d,l)
+	vi:SendMouseButtonEvent(x,y,0,d,l or game,0)
+end
+local function esp(v)
+    if not v then return end
+
+    if v:FindFirstChild("ESP") then return end
+
+    local esp = Instance.new("BillboardGui", v)
+    esp.Name = "ESP"
+    esp.Size = UDim2.new(0, 100, 0, 20)
+    esp.StudsOffset = Vector3.new(0, 3, 0)
+    esp.AlwaysOnTop = true
+
+    local label = Instance.new("TextLabel", esp)
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = v.Name or "Part"
+    label.TextColor3 = Color3.new(1, 0, 0)
+    label.TextScaled = true
+end
+local function refresh_esp()
+	for _, v in ipairs(workspace.Characters:GetChildren()) do
+	    if v then
+			local e = v:FindFirstChild("ESP")
+            if e then
+                e:Destroy()
+			end
+        end
+	end
+	for _, v in ipairs(workspace.Items:GetChildren()) do
+	    if v then
+			local e = v:FindFirstChild("ESP")
+            if e then
+                e:Destroy()
+			end
+        end
+	end
+end
+binds.main=game:GetService"RunService".RenderStepped:Connect(function()
+	pcall(function()
+		plr=game.Players.LocalPlayer
+		chr=plr.Character
+		hum=chr.Humanoid
+		hrp=chr.HumanoidRootPart
+	end)
+	if tog.tpw and chr and hum then
+		if hum.MoveDirection.Magnitude>0 then
+			chr:TranslateBy(hum.MoveDirection*vals.tpws/5)
+		end
+	end
+
+    if tog.kill_aura and chr and hum and hrp and cd.killaura then  
+		cd.killaura=false  
+	    local inv = plr:FindFirstChild("Inventory")
+	    local tool = inv and (inv:FindFirstChild("Chainsaw") or inv:FindFirstChild("Strong Axe") or inv:FindFirstChild("Good Axe") or inv:FindFirstChild("Old Axe"))
+	    local dmgEvent = rs:FindFirstChild("RemoteEvents") and rs.RemoteEvents:FindFirstChild("ToolDamageObject")
+	    if not tool or not dmgEvent then return end
+		local count=plr.UserId
+    
+	    for _, target in ipairs(workspace.Characters:GetChildren()) do
+	    	if target ~= char and target:FindFirstChild("HumanoidRootPart") then
+	    		if (target.HumanoidRootPart.Position - hrp.Position).Magnitude <= vals.killaura_range then
+	    			count += 1
+	    			dmgEvent:InvokeServer(target, tool, tostring(count), hrp.CFrame)
+	    		end
+	    	end
+	    end
+		if tog.kill_trees then
+        	for _, v in ipairs(workspace.Map.Landmarks:GetChildren()) do
+        		if v.Name == "Small Tree" then
+        			local hitPart = v.Trunk
+					if not hitPart then return end
+        			if (hitPart.Position - hrp.Position).Magnitude <= vals.killaura_range then
+        				count += 1
+        				dmgEvent:InvokeServer(v, tool, tostring(count), hrp.CFrame)
+        			end
+        		end
+        	end
+			for _, v in ipairs(workspace.Map.Foliage:GetChildren()) do
+        		if v.Name == "Small Tree" then
+        			local hitPart = v.Trunk
+					if not hitPart then return end
+        			if (hitPart.Position - hrp.Position).Magnitude <= vals.killaura_range then
+        				count += 1
+        				dmgEvent:InvokeServer(v, tool, tostring(count), hrp.CFrame)
+        			end
+        		end
+        	end
+        end
+		task.wait(0.1)
+		cd.killaura=true
+	end
+
+	if tog.esp and cd.esp then
+		cd.esp=false
+		refresh_esp()
+		if vals.esp.enemies then
+			-- esp enemies
+			--workspace.Characters
+	    	for _, model in ipairs(workspace.Characters:GetChildren()) do
+	    	    if model ~= game.Players.LocalPlayer.Character then
+	    	    	esp(model)
+				end
+	        end
+	    end
+        if vals.esp.items then
+            for _, model in ipairs(workspace.Items:GetChildren()) do
+                if model.Name ~= "Item Chest" and model ~= game.Players.LocalPlayer.Character then
+                    esp(model)
+                end
+            end
+        end
+		if vals.esp.chests then
+			for _, model in ipairs(workspace.Items:GetChildren()) do
+                if model.Name == "Item Chest" and model ~= game.Players.LocalPlayer.Character then
+                    esp(model)
+                end
+            end
+		end
+		task.wait(1)
+		cd.esp=true
+	end
+end)
+binds.jump=game.UserInputService.JumpRequest:Connect(function()
+	if tog.infj and hum then
+		hum:ChangeState"Jumping"
+	end
+end)
+local Main=UI:addPage("Main",1,true)
+local Esp=UI:addPage("ESP",1.5)
+local Items=UI:addPage("Items",1)
+local Local=UI:addPage("Local Player",1)
+Main.addToggle("Kill Aura",tog.kill_aura,function(v)
+	tog.kill_aura=v
+end)
+Main.addToggle("Kill aura work on trees", tog.kill_trees, function(v)
+	tog.kill_trees=v
+end)
+Main.addSlider("Kill aura range", {min=0, max=100, default=vals.killaura_range}, function(v)
+	vals.killaura_range=v
+end)
+
+Esp.addToggle("Enable",tog.esp,function(v)
+	tog.esp=v
+    refresh_esp()
+end)
+Esp.addLabel"Filters"
+Esp.addToggle("Enemies",vals.esp.enemies,function(v)
+	vals.esp.enemies=v
+end)
+Esp.addToggle("Items",vals.esp.items,function(v)
+	vals.esp.items=v
+end)
+Esp.addToggle("Chests",vals.esp.chests,function(v)
+	vals.esp.chests=v
+end)
+
+Items.addButton("Pickup all items (sorted by distance)", function()
+    local bag = plr:WaitForChild("Inventory"):FindFirstChild("Old Sack")
+        or plr:WaitForChild("Inventory"):FindFirstChild("Good Sack")
+        or plr:WaitForChild("Inventory"):FindFirstChild("Giant Sack")
+    if not bag then return end
+    local Items = workspace:WaitForChild("Items")
+
+    local all = {}
+    for _, item in ipairs(Items:GetChildren()) do
+        local pos = item.PrimaryPart and item.PrimaryPart.Position or item.Position
+        if pos then
+            table.insert(all, {item = item, dist = (pos - hrp.Position).Magnitude})
+        end
+    end
+    table.sort(all, function(a, b) return a.dist < b.dist end)
+    local count=0
+    for _, entry in ipairs(all) do
+	    count += 1
+        game:GetService("ReplicatedStorage").RemoteEvents.RequestBagStoreItem:InvokeServer(bag, entry.item)
+		if count == bag:GetAttribute("Capacity") then break end
+    end
+end)
+
+Items.addButton("Drop items", function()
+    local bag = plr:WaitForChild("Inventory"):FindFirstChild("Old Sack") or lplr:WaitForChild("Inventory"):FindFirstChild("Good Sack") or lplr:WaitForChild("Inventory"):FindFirstChild("Giant Sack")
+    local Items = workspace:WaitForChild("Items")
+	local count = 0
+        local ItemBag = plr:WaitForChild("ItemBag")
+    local max = bag:GetAttribute("Capacity") or 99
+    local count = 0
+
+    for _, item in ipairs(ItemBag:GetChildren()) do
+        if item:IsA("Model") and item.PrimaryPart then
+            item:SetPrimaryPartCFrame(hrp.CFrame)
+        elseif item:IsA("BasePart") then
+            item.CFrame = hrp.CFrame
+        end
+
+        game:GetService("ReplicatedStorage").RemoteEvents.RequestBagDropItem:FireServer(bag, item)
+
+        count += 1
+        if count >= max then break end
+        task.wait(0.1)
+    end
+end)
+
+Local.addToggle("TP Walk",tog.tpw,function(v)
+	tog.tpw=v
+end)
+Local.addSlider("TPWalk Speed",{min=0,max=150,default=vals.tpws},function(v)
+	vals.tpws=v
+end)
+Local.addToggle("Invis Cam",false,function(v)
+	plr.CameraMaxZoomDistance=300
+	plr.DevCameraOcclusionMode=v and Enum.DevCameraOcclusionMode.Invisicam or Enum.DevCameraOcclusionMode.Zoom
+end)
+Local.addButton("Inf Yield",loadstring(game:HttpGet"https://infyiff.github.io/resources/IY_FE.txt"))
+Local.destroyGui(function()
+	for i,v in pairs(tog)do tog[i]=false end
+	for _,v in pairs(binds)do v:Disconnect()end
+	refresh_esp()
+end)
